@@ -1,0 +1,1 @@
+python train.py --model_name 'SingleGRU' --bidirectional True

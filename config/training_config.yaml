@@ -1,0 +1,33 @@
+---
+Training:
+  data_path: /home/qn/biometrics/touchscreen_data.csv #/home/wcy/shengwutanzhen/data/login.csv 
+  sensor_data_path: /home/wcy/shengwutanzhen/data/sensor
+  epoch_num: 100
+  batch_size: 1
+  train_set_ratio: 0.8
+
+  checkpoint_path: /home/qn/biometrics/checkpoints
+
+  optimizer: Adam
+  weight_decay: 0.0001
+  loss_fn: TripletLoss
+
+  lr: 0.01
+  lr_scheduler: StepLR
+  step_size: 100
+  gamma: 0.3
+
+  log_interval: 10 # print log every 10 batches
+  eval_interval: 100 # evaluate model every 100 batches, save model if better
+  metric: euclidean # euclidean or cosine
+  use_cuda: true
+
+
+TripletLoss:
+  online: true
+  margin: 0.2
+  batch_hard: true
+
+ContrastiveLoss:
+  online: true
+  margin: 0.2
