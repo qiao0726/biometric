@@ -1,12 +1,12 @@
 ---
 Training:
-  data_path: /home/qn/biometrics/touchscreen_data.csv #/home/wcy/shengwutanzhen/data/login.csv 
+  data_path: /home/wcy/shengwutanzhen/data/login.csv 
   sensor_data_path: /home/wcy/shengwutanzhen/data/sensor
-  epoch_num: 100
-  batch_size: 1
+  epoch_num: 10
+  batch_size: 3
   train_set_ratio: 0.8
 
-  checkpoint_path: /home/qn/biometrics/checkpoints
+  checkpoint_path: /home/qn/biometric/checkpoints
 
   optimizer: Adam
   weight_decay: 0.0001
@@ -20,7 +20,7 @@ Training:
   log_interval: 10 # print log every 10 batches
   eval_interval: 100 # evaluate model every 100 batches, save model if better
   metric: euclidean # euclidean or cosine
-  use_cuda: true
+  use_cuda: false
 
 
 TripletLoss:

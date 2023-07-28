@@ -1,11 +1,11 @@
 from collections import OrderedDict
 from torch import Tensor
 import torch.nn as nn
-from RNN import RNN
-from GRU import SingleGRU
-from FCNetwork import FCNetwork
-from LSTM import LSTM
-from factory import create_recognition_model, get_sensor_data_model, get_touchscreen_data_model
+from .RNN import RNN
+from .GRU import SingleGRU
+from .FCNetwork import FCNetwork
+from .LSTM import LSTM
+from .factory import get_sensor_data_model, get_touchscreen_data_model
 import torch
 
 class GestureClassificationNetwork(nn.Module):
@@ -18,8 +18,8 @@ class GestureClassificationNetwork(nn.Module):
         self.softmax = nn.Softmax(dim=1)
         
     def forward(self, sensor_data, ts_data, total_time, usrname_pswd_len):
-        ts_data_embeddings = self.touchscreen_data_network(ts_data)
-        sensor_data_embeddings = self.sensor_data_network(sensor_data)
+        ts_data_embeddings = self.touchscreen_data_network(ts_data, None)
+        sensor_data_embeddings = self.sensor_data_network(None, sensor_data)
         embeddings = torch.cat((ts_data_embeddings, sensor_data_embeddings, total_time, usrname_pswd_len), dim=1)
         embeddings = self.fc(embeddings)
         cls_prob = self.softmax(embeddings)
@@ -32,14 +32,14 @@ class IDRecognitionNetwork(nn.Module):
                  gesture_type_embedding_dim=8, out_feat_dim=64):
         super(IDRecognitionNetwork, self).__init__()
         # Choose from RNN, LSTM, GRU and Fully Connected Network
-        self.touchscreen_data_network, out_dim = create_recognition_model(ts_data_network_name)
-        self.gesture_type_embedding = nn.Embedding(8, gesture_type_embedding_dim)
+        self.touchscreen_data_network, out_dim = get_touchscreen_data_model(ts_data_network_name)
+        self.gesture_type_embedding = nn.Embedding(14, gesture_type_embedding_dim)
         self.fc = nn.Linear(out_dim + gesture_type_embedding_dim + 2, out_feat_dim)
         
     def forward(self, ts_data, gst_type_code, total_time, usrname_pswd_len):
-        ts_data_embeddings = self.touchscreen_data_network(ts_data)
+        ts_data_embeddings = self.touchscreen_data_network(ts_data, None)
         gst_type_embeddings = self.gesture_type_embedding(gst_type_code)
-        embeddings = torch.cat((ts_data_embeddings, gst_type_embeddings, total_time, usrname_pswd_len), dim=1)
+        embeddings = torch.cat((ts_data_embeddings, gst_type_embeddings, total_time.unsqueeze(1), usrname_pswd_len.unsqueeze(1)), dim=1)
         id_embeddings = self.fc(embeddings)
         return id_embeddings
     

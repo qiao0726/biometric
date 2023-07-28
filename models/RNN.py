@@ -81,3 +81,4 @@ class RNN(nn.Module):
         else:
             # shape is (batch_size, hidden_size*num_directions*1)
             output = output[:, -1, :]
+        return output

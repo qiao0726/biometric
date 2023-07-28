@@ -8,13 +8,15 @@ import time
 from datetime import datetime
 import os
 import torch.utils.data as data_utils
+import torch.nn as nn
 
 train_cfg = load_training_config_yaml()
 
 class TripletTrainEngine(object):
-    def __init__(self, model, model_type='gesture_classification'):
+    def __init__(self, model, model_type='gesture_only', model_name='SingleGRU'):
+        self.model_type = model_type # Choose from 'gesture_classification' and 'id_recognition' and 'both'
         self.device = torch.device('cuda' if torch.cuda.is_available() and train_cfg['Training']['use_cuda'] else 'cpu')
-        
+        self.model_name = model_name
         # Split dataset into train and eval
         dataset = TouchscreenSensorDataset(csv_file_path=train_cfg['Training']['data_path'], sensor_data_folder_path=train_cfg['Training']['sensor_data_path'])
         train_size = int(train_cfg['Training']['train_set_ratio'] * len(dataset))
@@ -37,12 +39,14 @@ class TripletTrainEngine(object):
             raise Exception(f'No optimizer named {wrong_optimizer}')
         #self.optimizer = self.optimizer.to(self.device)
         
-        if train_cfg['Training']['loss_fn'] == 'TripletLoss':
+        if model_type == 'id_only' or model_type == 'both':
             self.loss_fn = OnlineTripletLoss(margin=train_cfg['TripletLoss']['margin'], 
                                              batch_hard=train_cfg['TripletLoss']['batch_hard'], 
                                              squared=False)
+        elif model_type == 'gesture_only':
+            self.loss_fn = nn.CrossEntropyLoss()
         else:
-            raise Exception(f'No loss function named {train_cfg["Training"]["loss_fn"]}')
+            raise Exception(f'No model_type named {model_type}')
         
         if train_cfg['Training']['lr_scheduler'] == 'StepLR':
             self.lr_scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, 
@@ -64,18 +68,25 @@ class TripletTrainEngine(object):
         correct_pairs = 0
         total_pairs = 0
         for batch_idx, batch in enumerate(self.eval_loader):
-            sensor_data, ts_data, total_time, gesture_type, usrn_psrd_len, label = batch
-            hold_time, inter_time, distance, speed = ts_data
+            sensor_data, ts_data, total_time, gesture_type, usrn_pswd_len, label = batch
+            sensor_data = sensor_data.to(self.device)
+            for data in ts_data:
+                data.to(self.device)
+            total_time, usrn_pswd_len = total_time.to(self.device), usrn_pswd_len.to(self.device)
+            gesture_type, label = gesture_type.to(self.device), label.to(self.device)
             
-            label = label.to(self.device)
-            hold_time, inter_time = hold_time.to(self.device), inter_time.to(self.device)
-            distance, speed = distance.to(self.device), speed.to(self.device)
-            total_time, gesture_type = total_time.to(self.device), gesture_type.to(self.device)
+            if self.model_type == 'gesture_only':
+                # embeddings.shape = (batch_size, embedding_size)
+                embeddings = self.model(sensor_data, ts_data, total_time, usrn_pswd_len)
+                loss, batch_correct, batch_samples_num = self.loss_fn(embeddings, gesture_type)
+            elif self.model_type == 'id_only':
+                # embeddings.shape = (batch_size, embedding_size)
+                embeddings = self.model(ts_data, gesture_type, total_time, usrn_pswd_len)
+                loss, batch_correct, batch_samples_num = self.loss_fn(embeddings, label)
+            elif self.model_type == 'both':
+                embeddings = self.model(sensor_data, ts_data, total_time, usrn_pswd_len)
+                loss, batch_correct, batch_samples_num = self.loss_fn(embeddings, label)
             
-            # embeddings.shape = (batch_size, embedding_size)
-            embeddings = self.model(None, hold_time, inter_time, distance, speed, total_time, gesture_type)
-
-            loss, batch_correct, batch_samples_num = self.loss_fn(embeddings, label)
             eval_loss += loss.item()
             correct_pairs += batch_correct
             total_pairs += batch_samples_num
@@ -87,7 +98,7 @@ class TripletTrainEngine(object):
         if not os.path.exists(save_path):
             os.makedirs(save_path)
         if save_all:
-            save_dict = {'epoch': epoch,
+            save_dict = {'epoch': epoch, 'model_type': self.model_type,
                          'model': self.model.state_dict(),
                          'optimizer': self.optimizer.state_dict(),
                          'lr_scheduler': self.lr_scheduler.state_dict()}
@@ -95,32 +106,38 @@ class TripletTrainEngine(object):
             save_dict = self.model.state_dict()
         if use_time:
             current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-            ckpt_save_name = f'{save_path}/{self.model.__class__.__name__}_{current_time}.pth'
+            ckpt_save_name = f'{save_path}/{self.model.__class__.__name__}_{self.model_name}_{current_time}.pth'
         else:
-            ckpt_save_name = f'{save_path}/{self.model.__class__.__name__}.pth'
+            ckpt_save_name = f'{save_path}/{self.model.__class__.__name__}_{self.model_name}.pth'
         torch.save(save_dict, ckpt_save_name)
         # Lastly saved checkpoint is the best checkpoint
-        self.best_ckpt_name = ckpt_save_name.split('/')[-1]
-        
+        self.best_ckpt_name = ckpt_save_name.split('/')[-1] 
     
     def train_one_epoch(self, current_epoch, total_epoch):
         train_epoch_stats = dict()
         epoch_loss = 0.0
         for batch_idx, batch in enumerate(self.train_loader):
             self.model.train()
-            sensor_data, ts_data, total_time, gesture_type, usrn_psrd_len, label = batch
-            hold_time, inter_time, distance, speed = ts_data
+            sensor_data, ts_data, total_time, gesture_type, usrn_pswd_len, label = batch
+            total_time, usrn_pswd_len, label = total_time.unsqueeze(1), usrn_pswd_len.unsqueeze(1), label.unsqueeze(1)
+            sensor_data = sensor_data.to(self.device)
+            for data in ts_data:
+                data = data.to(self.device)
+            total_time, usrn_pswd_len = total_time.to(self.device), usrn_pswd_len.to(self.device)
+            gesture_type, label = gesture_type.to(self.device), label.to(self.device)
             
-            label =  label.to(self.device)
-            hold_time, inter_time = hold_time.to(self.device), inter_time.to(self.device)
-            distance, speed = distance.to(self.device), speed.to(self.device)
-            total_time, gesture_type = total_time.to(self.device), gesture_type.to(self.device)
+            if self.model_type == 'gesture_only':
+                # embeddings.shape = (batch_size, embedding_size)
+                embeddings = self.model(sensor_data, ts_data, total_time, usrn_pswd_len).unsqueeze(1).float()
+                loss, batch_correct, batch_samples_num = self.loss_fn(embeddings, gesture_type)
+            elif self.model_type == 'id_only':
+                # embeddings.shape = (batch_size, embedding_size)
+                embeddings = self.model(ts_data, gesture_type, total_time, usrn_pswd_len)
+                loss, batch_correct, batch_samples_num = self.loss_fn(embeddings, label)
+            elif self.model_type == 'both':
+                embeddings = self.model(sensor_data, ts_data, total_time, usrn_pswd_len)
+                loss, batch_correct, batch_samples_num = self.loss_fn(embeddings, label)
             
-            # embeddings.shape = (batch_size, embedding_size)
-            embeddings = self.model(None, hold_time, inter_time, 
-                                    distance, speed, total_time, gesture_type)
-
-            loss, correct, total = self.loss_fn(embeddings, label)
             epoch_loss += loss.item()
             self.optimizer.zero_grad()
             loss.backward()

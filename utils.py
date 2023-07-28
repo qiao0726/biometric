@@ -60,7 +60,7 @@ def load_csv_to_dict(file_path):
     return data
 
 def load_model_config_yaml(cfg_file_name='ts_model_config.yaml'):
-    cfg_path = '/home/qn/biometrics/config/' + cfg_file_name
+    cfg_path = '/home/qn/biometric/config/' + cfg_file_name
     model_config = dict()
     with open(cfg_path, 'r') as file:
         if os.path.exists(cfg_path):
@@ -69,7 +69,7 @@ def load_model_config_yaml(cfg_file_name='ts_model_config.yaml'):
             raise Exception(f'No model_config.yaml found in {cfg_path}')
     return model_config
 
-def load_training_config_yaml(cfg_path='/home/qn/biometrics/config/training_config.yaml'):
+def load_training_config_yaml(cfg_path='/home/qn/biometric/config/training_config.yaml'):
     training_config = dict()
     with open(cfg_path, 'r') as file:
         if os.path.exists(cfg_path):
@@ -78,7 +78,7 @@ def load_training_config_yaml(cfg_path='/home/qn/biometrics/config/training_conf
             raise Exception(f'No training_config.yaml found in {cfg_path}')
     return training_config
 
-def load_test_config_yaml(cfg_path='/home/qn/biometrics/config/test_config.yaml'):
+def load_test_config_yaml(cfg_path='/home/qn/biometric/config/test_config.yaml'):
     testing_config = dict()
     with open(cfg_path, 'r') as file:
         if os.path.exists(cfg_path):

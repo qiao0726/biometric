@@ -29,8 +29,8 @@ def read_csv_column(csv_file_path, header_name, step=10):
 #     plt.savefig(save_path)
 #     return
 login_csv_file_path = r'/home/wcy/shengwutanzhen/data/login.csv'
-csv_file_path = r'/home/qn/biometrics/data/sensor/dde110af2b13456c9ed917f4eba173c7.csv'
-save_path = os.path.join(r'/home/qn/biometrics/data_processing', csv_file_path.split('/')[-1].split('.')[0] + '.png')
+csv_file_path = r'/home/qn/biometric/data/sensor/dde110af2b13456c9ed917f4eba173c7.csv'
+save_path = os.path.join(r'/home/qn/biometric/data_processing', csv_file_path.split('/')[-1].split('.')[0] + '.png')
 
 def plotCurves(csv_file_path, save_path, col_names, step=10):
     plt.clf()
@@ -45,8 +45,5 @@ def plotCurves(csv_file_path, save_path, col_names, step=10):
 
 
 if __name__ == '__main__':
-    # for col_name in ('gyroX', 'gyroY', 'gyroZ', 'accX', 'accY', 'accZ'):
-    #     save_path = os.path.join(r'/home/qn/biometrics/data_processing', f'{col_name}.png')
-    #     plotCurve(csv_file_path, save_path, 'gyroX', step=10)
     plotCurves(csv_file_path, save_path, step=1, col_names=
                ('accX', 'accY', 'accZ', 'gyroX', 'gyroY', 'gyroZ'))

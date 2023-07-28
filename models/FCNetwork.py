@@ -12,7 +12,7 @@ class FCNetwork(nn.Module):
         self.bn = nn.BatchNorm1d(hidden_size)
         self.relu = nn.ReLU()
         self.output = nn.Linear(hidden_size, output_size)
-        self.gesture_type_embedding = nn.Embedding(11, gesture_type_embedding_dim)
+        self.gesture_type_embedding = nn.Embedding(14, gesture_type_embedding_dim)
         
         self.use_batch_norm = use_batch_norm
         self.apply_data_list = applied_data_list

@@ -29,6 +29,20 @@ SingleGRU:
   - distance
   - speed
 
+LSTM:
+  in_feat_dim: 1
+  hidden_state_dim: 64
+  out_feat_dim: 32
+  num_layers: 1
+  sequence_length: 30
+  batch_first: true
+  bidirectional: false
+  use_all_outputs: false
+  applied_data_list:
+  - hold_time
+  - inter_time
+  - distance
+  - speed
 
 FCNetwork:
   in_feat_dim: 1

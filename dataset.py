@@ -53,17 +53,20 @@ class TouchscreenDataset(Dataset):
         item = self.data[index]
         if 'hold_time' in self.apply_data_list:
             hold_time = list(ast.literal_eval(item['hold-time']))
+            hold_time = set_seq_len(hold_time)
             hold_time = torch.tensor(hold_time, dtype=torch.float32)
             #hold_time = hold_time[:FIXED_INPUT_LENGTH] if len(hold_time) > FIXED_INPUT_LENGTH else hold_time + [0] * (FIXED_INPUT_LENGTH - len(hold_time))
             #item['hold_time'] = hold_time
         if 'inter_time' in self.apply_data_list:
             inter_time = list(ast.literal_eval(item['inter-time']))
+            inter_time = set_seq_len(inter_time)
             inter_time = torch.tensor(inter_time, dtype=torch.float32)
         # if 'pressure' in self.apply_data_list:
         #     pressure = list(ast.literal_eval(item['pressure']))
         #     pressure = torch.tensor(pressure, dtype=torch.float32)
         if 'distance' in self.apply_data_list:
             distance = list(ast.literal_eval(item['distance']))
+            distance = set_seq_len(distance)
             distance = torch.tensor(distance, dtype=torch.float32)
         # Compute speed base on distance and inter_time
         if 'speed' in self.apply_data_list:
@@ -87,13 +90,13 @@ class TouchscreenDataset(Dataset):
         action = int(item['action'])
         pose = int(item['pose'])
         gesture_type_map = [
-            [0,3,6,9,10,-1],
-            [2,5,8,-1,-1,-1],
-            [1,4,7,-1,-1,-1]
+            [0,3,6,9,10,13],
+            [2,5,8,13,13,13],
+            [1,4,7,13,13,13]
         ]
         
         gesture_type = gesture_type_map[action-1][pose-1]
-        gesture_type = torch.tensor(gesture_type, dtype=torch.float32)
+        #gesture_type = torch.tensor(gesture_type, dtype=torch.float32)
         
         label = encode_non_numeric(str(item['label']))
         
@@ -133,12 +136,12 @@ class SensorDataset(Dataset):
         action = int(this_item['action'])
         pose = int(this_item['pose'])
         gesture_type_map = [
-            [0,3,6,9,10,-1],
-            [2,5,8,-1,-1,-1],
-            [1,4,7,-1,-1,-1]
+            [0,3,6,9,10,13],
+            [2,5,8,13,13,13],
+            [1,4,7,13,13,13]
         ]
         gesture_type = gesture_type_map[action-1][pose-1]
-        gesture_type = torch.tensor(gesture_type, dtype=torch.float32)
+        #gesture_type = torch.tensor(gesture_type, dtype=torch.float32)
         
         total_time = torch.tensor(this_item['total_time'], dtype=torch.float32)
         
