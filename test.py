@@ -1,4 +1,3 @@
-import torch
 from engines.test_engine import TestEngine
 import argparse
 from models.factory import create_test_model

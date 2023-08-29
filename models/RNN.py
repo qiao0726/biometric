@@ -21,10 +21,10 @@ class RNN(nn.Module):
         self.apply_data_list = applied_data_list
         if data_type == 'touchscreen':
             self.rnn = nn.RNN(input_size=len(self.apply_data_list)*in_feat_dim, hidden_size=hidden_state_dim,
-                                   num_layers=num_layers, bidirectional=bidirectional, batch_first=True)
+                              num_layers=num_layers, bidirectional=bidirectional, batch_first=True)
         elif data_type == 'sensor':
             self.rnn = nn.RNN(input_size=in_feat_dim, hidden_size=hidden_state_dim,
-                                   num_layers=num_layers, bidirectional=bidirectional, batch_first=True)
+                              num_layers=num_layers, bidirectional=bidirectional, batch_first=True)
         else:
             raise Exception('data_type must be one of "sensor" and "touchscreen"')
         self.use_all_outputs = use_all_outputs
@@ -39,22 +39,10 @@ class RNN(nn.Module):
             raise Exception('data_type must be one of "sensor" and "touchscreen"')
     
     def forward_ts(self, ts_data):
-        hold_time, inter_time, distance, speed = ts_data
-        
-        # Reshape to [batch_size, sequence_length, 1]
-        hold_time.unsqueeze_(-1)
-        inter_time.unsqueeze_(-1)
-        distance.unsqueeze_(-1)
-        speed.unsqueeze_(-1)
-        
-        applied_data_list = list([var for var_name, var in locals().items() if var_name in self.apply_data_list])
-        
-        concat_tensor = torch.cat(applied_data_list, dim=-1)
-        
         # output is a tuple, the first element is the output tensor, the second element is the hidden state
         # Shape of output[0] is (batch_size, sequence_length, hidden_size*num_directions)
         # Shape of output[1] is (num_layers*num_directions, batch_size, hidden_size)
-        output = self.rnn(concat_tensor)
+        output = self.rnn(ts_data)
         output = output[0]
         # --------------------Use all the outputs of the GRU---------------------
         if self.use_all_outputs:

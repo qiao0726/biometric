@@ -1,6 +1,4 @@
-from typing import Any
 from torch.utils.data import Dataset
-import pandas as pd
 import torch
 from utils import load_csv_to_list, encode_non_numeric
 import ast
@@ -90,9 +88,8 @@ class TouchscreenDataset(Dataset):
         action = int(item['action'])
         pose = int(item['pose'])
         gesture_type_map = [
-            [0,3,6,9,10,13],
-            [2,5,8,13,13,13],
-            [1,4,7,13,13,13]
+            [0,2,4,6,7],
+            [1,3,5]
         ]
         
         gesture_type = gesture_type_map[action-1][pose-1]
@@ -136,16 +133,15 @@ class SensorDataset(Dataset):
         action = int(this_item['action'])
         pose = int(this_item['pose'])
         gesture_type_map = [
-            [0,3,6,9,10,13],
-            [2,5,8,13,13,13],
-            [1,4,7,13,13,13]
+            [0,2,4,6,7],
+            [1,3,5]
         ]
         gesture_type = gesture_type_map[action-1][pose-1]
         #gesture_type = torch.tensor(gesture_type, dtype=torch.float32)
         
         total_time = torch.tensor(this_item['total_time'], dtype=torch.float32)
         
-        label = encode_non_numeric(this_item['label'])
+        label = encode_non_numeric(str(this_item['label']))
         
         usrn_psrd_len = torch.tensor(this_item['usrn_len'] + this_item['pswd_len'], dtype=torch.float32)
         

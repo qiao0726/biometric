@@ -1,0 +1,12 @@
+2023-08-11 13:43:08,622 - Training - INFO - [INFO]Train dataset size: 72, Test dataset size: 9
+2023-08-11 13:43:08,622 - Training - INFO - [INFO]Model type: no_gesture, Sensor model name: RNN, TS model name: RNN
+2023-08-11 13:43:10,873 - Training - INFO - [TRAIN]EPOCH: 0/2, batch: 0, loss: 4497.8506, lr: 0.0100
+2023-08-11 13:43:11,107 - Training - INFO - [EVAL]EPOCH: 0/2, batch: 0, loss: 1308.2168, accuracy: 0.4444
+2023-08-11 13:43:11,111 - Training - INFO - [SAVE]EPOCH: 0/2, batch: 0, best_acc: 0.4444444477558136, best_ckpt: NoGestureNetwork_2023-08-11_13-43-11.pth
+2023-08-11 13:43:11,113 - Training - INFO - [TRAIN]EPOCH: 0/2, Epoch Time: 00:00:02, Epoch Loss: 4497.8506
+2023-08-11 13:43:11,330 - Training - INFO - [EVAL]EPOCH: 0/2, loss: 1308.2169, accuracy: 0.4444
+2023-08-11 13:43:14,660 - Training - INFO - [TRAIN]EPOCH: 1/2, batch: 0, loss: 3776.0027, lr: 0.0100
+2023-08-11 13:43:14,848 - Training - INFO - [EVAL]EPOCH: 1/2, batch: 0, loss: 1071.7687, accuracy: 0.4444
+2023-08-11 13:43:14,849 - Training - INFO - [TRAIN]EPOCH: 1/2, Epoch Time: 00:00:03, Epoch Loss: 3776.0027
+2023-08-11 13:43:15,060 - Training - INFO - [EVAL]EPOCH: 1/2, loss: 1071.7687, accuracy: 0.4444
+2023-08-11 13:43:15,063 - Training - INFO - [DONE]Best_acc: 0.4444444477558136, Best_ckpt: NoGestureNetwork_2023-08-11_13-43-11.pth

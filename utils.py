@@ -3,9 +3,17 @@ from sklearn.model_selection import train_test_split
 import csv
 import os
 import yaml
-
+from torchsummary import summary
 # When data length is < 30, we will pad the data with 0s
 FIXED_INPUT_LENGTH = 30
+
+
+def count_params(model):
+    # Determine input size by inspecting the first layer
+    input_size = next(model.parameters()).size()[1:]
+    summary(model, input_size=input_size)
+    total_params = sum(p.numel() for p in model.parameters())
+    return total_params
 
 def encode_non_numeric(s):
     # Check if the string contains only numbers

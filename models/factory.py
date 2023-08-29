@@ -1,13 +1,7 @@
-from sklearn import datasets
-from sklearn.svm import SVC
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report
 from .LSTM import LSTM
 from .FCNetwork import FCNetwork
-from .GRU import SingleGRU, HierGRU
+from .GRU import GRU
 from .RNN import RNN
-import yaml
-import os
 from utils import load_model_config_yaml, load_test_config_yaml
 
 
@@ -23,12 +17,8 @@ def create_gesture_model(model_name):
         return LSTM(input_size=cfg['input_size'], hidden_size=cfg['hidden_size'], 
                     num_layers=cfg['num_layers'], output_size=cfg['output_size'], 
                     batch_first=cfg['batch_first'], bidirectional=cfg['bidirectional'])
-    elif model_name == 'SingleGRU':
-        return SingleGRU(in_feat_dim=cfg['in_feat_dim'], hidden_state_dim=128)
-    elif model_name == 'HierGRU':
-        return HierGRU(in_feat_dim=cfg['in_feat_dim'], hidden_state_dim=cfg['hidden_state_dim'], 
-                       num_layers=cfg['num_layers'], bidirectional=cfg['bidirectional'], 
-                       batch_first=cfg['batch_first'])
+    elif model_name == 'GRU':
+        return GRU(in_feat_dim=cfg['in_feat_dim'], hidden_state_dim=128)
     elif model_name == 'FCNetwork':
         return FCNetwork(input_size=len(cfg['applied_data_list'])*cfg['sequence_length']*cfg['in_feat_dim']
                          + cfg['gesture_type_embedding_dim'] + 1, 
@@ -55,8 +45,8 @@ def create_test_model(model_name:str):
                          output_size=cfg['output_size'], 
                          use_batch_norm=cfg['use_batch_norm'],
                          applied_data_list=cfg['applied_data_list'])
-    elif model_name == 'SingleGRU':
-        return SingleGRU(in_feat_dim=cfg['in_feat_dim'], hidden_state_dim=cfg['hidden_state_dim'],
+    elif model_name == 'GRU':
+        return GRU(in_feat_dim=cfg['in_feat_dim'], hidden_state_dim=cfg['hidden_state_dim'],
                          out_feat_dim=cfg['out_feat_dim'], num_layers=cfg['num_layers'],
                          use_all_outputs=cfg['use_all_outputs'],
                          applied_data_list=cfg['applied_data_list'], sequence_length=cfg['sequence_length'],
@@ -97,7 +87,7 @@ def get_sensor_data_model(model_name:str):
                    num_layers=cfg['num_layers'], use_all_outputs=cfg['use_all_outputs'],
                    applied_data_list=cfg['applied_data_list'],
                    bidirectional=cfg['bidirectional'], data_type='sensor'), out_dim
-    elif model_name == 'SingleGRU':
+    elif model_name == 'GRU':
         if cfg['use_all_outputs']:
             num_directions = 2 if cfg['bidirectional'] else 1
             out_dim = cfg['hidden_state_dim'] * num_directions * cfg['sequence_length']
@@ -105,7 +95,7 @@ def get_sensor_data_model(model_name:str):
             num_directions = 2 if cfg['bidirectional'] else 1
             out_dim = cfg['hidden_state_dim'] * num_directions
         
-        return SingleGRU(in_feat_dim=cfg['in_feat_dim'], hidden_state_dim=cfg['hidden_state_dim'],
+        return GRU(in_feat_dim=cfg['in_feat_dim'], hidden_state_dim=cfg['hidden_state_dim'],
                          num_layers=cfg['num_layers'], use_all_outputs=cfg['use_all_outputs'],
                          applied_data_list=cfg['applied_data_list'],
                          bidirectional=cfg['bidirectional'], data_type='sensor'), out_dim
@@ -153,7 +143,7 @@ def get_touchscreen_data_model(model_name:str):
                    applied_data_list=cfg['applied_data_list'],
                    bidirectional=cfg['bidirectional'], data_type='touchscreen'), out_dim
     
-    elif model_name == 'SingleGRU':
+    elif model_name == 'GRU':
         if cfg['use_all_outputs']:
             num_directions = 2 if cfg['bidirectional'] else 1
             out_dim = cfg['hidden_state_dim'] * num_directions * cfg['sequence_length']
@@ -161,7 +151,7 @@ def get_touchscreen_data_model(model_name:str):
             num_directions = 2 if cfg['bidirectional'] else 1
             out_dim = cfg['hidden_state_dim'] * num_directions
         
-        return SingleGRU(in_feat_dim=cfg['in_feat_dim'], hidden_state_dim=cfg['hidden_state_dim'],
+        return GRU(in_feat_dim=cfg['in_feat_dim'], hidden_state_dim=cfg['hidden_state_dim'],
                          num_layers=cfg['num_layers'], use_all_outputs=cfg['use_all_outputs'],
                          applied_data_list=cfg['applied_data_list'],
                          bidirectional=cfg['bidirectional'], data_type='touchscreen'), out_dim

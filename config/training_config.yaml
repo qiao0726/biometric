@@ -1,12 +1,13 @@
 ---
 Training:
-  data_path: /home/wcy/shengwutanzhen/data/login.csv 
-  sensor_data_path: /home/wcy/shengwutanzhen/data/sensor
-  epoch_num: 10
-  batch_size: 3
-  train_set_ratio: 0.8
+  data_path: /home/qn/biometric/data/login.csv
+  sensor_data_path: /home/qn/biometric/data/sensor
+  epoch_num: 2
+  batch_size: 72
+  train_set_ratio: 0.9
 
   checkpoint_path: /home/qn/biometric/checkpoints
+  log_path: /home/qn/biometric/logs
 
   optimizer: Adam
   weight_decay: 0.0001

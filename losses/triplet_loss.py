@@ -57,22 +57,6 @@ def get_valid_negative_mask(labels):
     mask = 1.0 - mask.float()
     return mask
 
-class TripletLoss(nn.Module):
-    """
-    Triplet loss
-    Takes embeddings of an anchor sample, a positive sample and a negative sample
-    """
-
-    def __init__(self, margin):
-        super(TripletLoss, self).__init__()
-        self.margin = margin
-
-    def forward(self, anchor, positive, negative, size_average=True):
-        distance_positive = (anchor - positive).pow(2).sum(1)  # .pow(.5)
-        distance_negative = (anchor - negative).pow(2).sum(1)  # .pow(.5)
-        losses = F.relu(distance_positive - distance_negative + self.margin)
-        return losses.mean() if size_average else losses.sum()
-
 
 class OnlineTripletLoss(nn.Module):
     """
@@ -144,6 +128,9 @@ class OnlineTripletLoss(nn.Module):
         
         # When hardest_negative_dist is greater than hardest_positive_dist, regard this pair as a correct triplet
         correct_triplet_num = torch.sum(torch.gt(hardest_negative_dist - hardest_positive_dist, torch.tensor(0.0)))
+        
+        print(f'correct_triplet_num: {correct_triplet_num}')
+        print(f'total_triplet_num: {hardest_negative_dist.shape[0]}')
         
         return triplet_loss, correct_triplet_num, hardest_negative_dist.shape[0]
      

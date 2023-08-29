@@ -14,7 +14,7 @@ RNN:
   - distance
   - speed
 
-SingleGRU:
+GRU:
   in_feat_dim: 6
   hidden_state_dim: 64
   out_feat_dim: 32
@@ -29,7 +29,6 @@ SingleGRU:
   - distance
   - speed
 
-
 FCNetwork:
   in_feat_dim: 6
   input_size: 1
@@ -38,6 +37,22 @@ FCNetwork:
   use_batch_norm: true
   sequence_length: 30
   gesture_type_embedding_dim: 8
+  applied_data_list:
+  - hold_time
+  - inter_time
+  - distance
+  - speed
+
+
+LSTM:
+  in_feat_dim: 6
+  hidden_state_dim: 64
+  out_feat_dim: 32
+  num_layers: 1
+  sequence_length: 30
+  batch_first: true
+  bidirectional: false
+  use_all_outputs: false
   applied_data_list:
   - hold_time
   - inter_time

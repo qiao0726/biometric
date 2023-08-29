@@ -14,7 +14,7 @@ RNN:
   - distance
   - speed
 
-SingleGRU:
+GRU:
   in_feat_dim: 1
   hidden_state_dim: 64
   out_feat_dim: 32

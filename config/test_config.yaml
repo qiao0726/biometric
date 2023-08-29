@@ -9,7 +9,7 @@ RNN:
   dropout: 0.0
   bidirectional: true
 
-SingleGRU:
+GRU:
   in_feat_dim: 1
   hidden_state_dim: 64
   out_feat_dim: 32
