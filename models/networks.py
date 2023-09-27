@@ -4,10 +4,10 @@ import torch
 import torch.nn.functional as F
 
 class GestureClassificationNetwork(nn.Module):
-    def __init__(self, ts_data_network_name='RNN', sensor_data_network_name='RNN'):
+    def __init__(self, ts_data_network_name='RNN', sensor_data_network_name='RNN', bidirectional=False):
         super(GestureClassificationNetwork, self).__init__()
-        self.touchscreen_data_network, out_dim1 = get_touchscreen_data_model(ts_data_network_name)
-        self.sensor_data_network, out_dim2 = get_sensor_data_model(sensor_data_network_name)
+        self.touchscreen_data_network, out_dim1 = get_touchscreen_data_model(ts_data_network_name, bidirectional=bidirectional)
+        self.sensor_data_network, out_dim2 = get_sensor_data_model(sensor_data_network_name, bidirectional=bidirectional)
         self.fc = nn.Linear(out_dim1 + out_dim2 + 2, 8)
         self.softmax = nn.Softmax(dim=1)
         
@@ -25,10 +25,11 @@ class GestureClassificationNetwork(nn.Module):
 
 class IDRecognitionNetwork(nn.Module):
     def __init__(self, ts_data_network_name='RNN', 
-                 gesture_type_embedding_dim=8, out_feat_dim=64, use_gesture_type=True):
+                 gesture_type_embedding_dim=8, out_feat_dim=64, use_gesture_type=True,
+                 bidirectional=False):
         super(IDRecognitionNetwork, self).__init__()
         # Choose from RNN, LSTM, GRU and Fully Connected Network
-        self.touchscreen_data_network, out_dim = get_touchscreen_data_model(ts_data_network_name)
+        self.touchscreen_data_network, out_dim = get_touchscreen_data_model(ts_data_network_name, bidirectional=bidirectional)
         self.use_gesture_type = use_gesture_type # Whether to use gesture type as an input
         if self.use_gesture_type:
             self.fc = nn.Linear(out_dim + gesture_type_embedding_dim + 2, out_feat_dim)
@@ -62,6 +63,7 @@ class BioMetricNetwork(nn.Module):
         if isinstance(ts_data, list):
             # Stack tensors along new dimension
             ts_data = torch.stack(ts_data, dim=2)
+        ts_data = ts_data.to(torch.device('cuda:7' if torch.cuda.is_available() else 'cpu'))
         
         gesture_type_embeddings = self.gst_cls_model(sensor_data, ts_data, total_time, usrname_pswd_len)
         
@@ -73,21 +75,24 @@ class BioMetricNetwork(nn.Module):
         id_embeddings = self.id_recog_model(ts_data, gst_type_one_hot, total_time, usrname_pswd_len)
         return id_embeddings
     
-    def load_checkpoint(self, gst_cls_model_ckpt_path=None, id_recog_model_ckpt_path=None):
+    def load_checkpoint(self, gst_cls_model_ckpt_path=None, id_recog_model_ckpt_path=None, entire_model_ckpt_path=None):
         if gst_cls_model_ckpt_path is not None:
             gst_cls_model_ckpt = torch.load(gst_cls_model_ckpt_path)
             self.gst_cls_model.load_state_dict(gst_cls_model_ckpt)
         if id_recog_model_ckpt_path is not None:
             id_recog_model_ckpt = torch.load(id_recog_model_ckpt_path)
             self.id_recog_model.load_state_dict(id_recog_model_ckpt)
+        if entire_model_ckpt_path is not None:
+            entire_model_ckpt = torch.load(entire_model_ckpt_path)
+            self.load_state_dict(entire_model_ckpt)
             
 
 class NoGestureNetwork(nn.Module):
-    def __init__(self, ts_data_network_name='RNN', sensor_data_network_name='RNN', out_feat_dim=64):
+    def __init__(self, ts_data_network_name='RNN', sensor_data_network_name='RNN', out_feat_dim=64, bidirectional=False):
         super(NoGestureNetwork, self).__init__()
         # Choose from RNN, LSTM, GRU and Fully Connected Network
-        self.touchscreen_data_network, out_dim1 = get_touchscreen_data_model(ts_data_network_name)
-        self.sensor_data_network, out_dim2 = get_sensor_data_model(sensor_data_network_name)
+        self.touchscreen_data_network, out_dim1 = get_touchscreen_data_model(ts_data_network_name, bidirectional=bidirectional)
+        self.sensor_data_network, out_dim2 = get_sensor_data_model(sensor_data_network_name, bidirectional=bidirectional)
         self.fc = nn.Linear(out_dim1 + out_dim2 + 2, out_feat_dim)
         
         

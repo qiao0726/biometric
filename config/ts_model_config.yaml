@@ -1,7 +1,7 @@
 ---
 RNN:
   in_feat_dim: 1
-  hidden_state_dim: 64
+  hidden_state_dim: 256
   out_feat_dim: 32
   num_layers: 1
   sequence_length: 30
@@ -16,7 +16,7 @@ RNN:
 
 GRU:
   in_feat_dim: 1
-  hidden_state_dim: 64
+  hidden_state_dim: 256
   out_feat_dim: 32
   num_layers: 1
   sequence_length: 30
@@ -31,7 +31,7 @@ GRU:
 
 LSTM:
   in_feat_dim: 1
-  hidden_state_dim: 64
+  hidden_state_dim: 256
   out_feat_dim: 32
   num_layers: 1
   sequence_length: 30

@@ -1,1 +1,1 @@
-python test.py --model 'GRU' --checkpoint 'checkpoints/' --test_type 'id_only' --dist_fn 'euclidean' --threshold 0.5
+python test.py --sensor_model_name 'LSTM' --ts_model_name 'LSTM' --model_type 'both' --use_gesture_type True --bidirectional False --out_feat_dim 128 --ckpt '/home/qn/biometric/checkpoints/BioMetricNetwork_2023-09-01_20-45-08.pth'

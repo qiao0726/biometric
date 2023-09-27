@@ -1,10 +1,10 @@
 ---
 Training:
-  data_path: /home/qn/biometric/data/login.csv
-  sensor_data_path: /home/qn/biometric/data/sensor
-  epoch_num: 2
-  batch_size: 72
-  train_set_ratio: 0.9
+  data_path: /home/qn/biometric/data/0921new_data/login.csv
+  sensor_data_path: /home/qn/biometric/data/0921new_data/sensor
+  epoch_num: 1000
+  batch_size: 512
+  train_set_ratio: 0.8
 
   checkpoint_path: /home/qn/biometric/checkpoints
   log_path: /home/qn/biometric/logs
@@ -13,22 +13,23 @@ Training:
   weight_decay: 0.0001
   loss_fn: TripletLoss
 
-  lr: 0.01
-  lr_scheduler: StepLR
-  step_size: 100
+  lr: 0.1
+  lr_scheduler: LambdaLR
+  step_size: 300
+  warmup_epochs: 50
   gamma: 0.3
 
   log_interval: 10 # print log every 10 batches
   eval_interval: 100 # evaluate model every 100 batches, save model if better
   metric: euclidean # euclidean or cosine
-  use_cuda: false
+  use_cuda: true
 
 
 TripletLoss:
   online: true
-  margin: 0.2
+  margin: 30
   batch_hard: true
 
 ContrastiveLoss:
   online: true
-  margin: 0.2
+  margin: 0.5

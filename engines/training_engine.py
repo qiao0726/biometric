@@ -12,12 +12,15 @@ import os
 import torch.utils.data as data_utils
 import torch.nn as nn
 
+os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+torch.cuda.set_device(7)
+
 train_cfg = load_training_config_yaml()
 
 class TripletTrainEngine(object):
     def __init__(self, model, model_type='gesture_only', sensor_model_name='GRU', ts_model_name='GRU'):
         self.model_type = model_type # Choose from 'gesture_classification' and 'id_recognition' and 'both'
-        self.device = torch.device('cuda' if torch.cuda.is_available() and train_cfg['Training']['use_cuda'] else 'cpu')
+        self.device = torch.device('cuda:7' if torch.cuda.is_available() and train_cfg['Training']['use_cuda'] else 'cpu')
         self.sensor_model_name = sensor_model_name
         self.ts_model_name = ts_model_name
         
@@ -55,17 +58,28 @@ class TripletTrainEngine(object):
             raise Exception(f'No model_type named {model_type}')
         
         if train_cfg['Training']['lr_scheduler'] == 'StepLR':
-            self.lr_scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, 
-                                                                step_size=train_cfg['Training']['step_size'],
-                                                                gamma=train_cfg['Training']['gamma'])
+            # self.lr_scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, 
+            #                                                     step_size=train_cfg['Training']['step_size'],
+            #                                                     gamma=train_cfg['Training']['gamma'])
+            milestones = [50, 100, 1000, 2000]
+            self.lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=milestones, gamma=train_cfg['Training']['gamma'])
+        elif train_cfg['Training']['lr_scheduler'] == 'LambdaLR':
+            def lr_lambda(epoch):
+                if epoch < train_cfg['Training']['warmup_epochs']:
+                    return epoch / train_cfg['Training']['warmup_epochs']
+                else:
+                    return max(0.0, 1 - (epoch - train_cfg['Training']['warmup_epochs']) / (train_cfg['Training']['epoch_num'] - train_cfg['Training']['warmup_epochs']))
+            self.lr_scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lr_lambda)
         else:
             raise Exception(f'No lr scheduler named {train_cfg["Training"]["lr_scheduler"]}')
         
         self.epoch_num = train_cfg['Training']['epoch_num']
         self.log_interval = train_cfg['Training']['log_interval']
         self.eval_interval = train_cfg['Training']['eval_interval']
-        self.best_acc = 0.0
-        self.best_ckpt_name = ''
+        
+        # Checkpoint which has the accuracy greater than 0.5 will be saved
+        self.best_acc = 0.5
+        self.best_ckpt_name = 'None'
         
         # Configure logging system
         log_path = train_cfg['Training']['log_path']
@@ -110,23 +124,24 @@ class TripletTrainEngine(object):
             if self.model_type == 'gesture_only':
                 # embeddings.shape = (batch_size, embedding_size)
                 embeddings = self.model(sensor_data, ts_data, total_time, usrn_pswd_len)
-                loss, batch_correct, batch_samples_num = self.loss_fn(embeddings, gesture_type)
+                loss, batch_correct, batch_samples_num, no_positive_anchor_num = self.loss_fn(embeddings, gesture_type)
             elif self.model_type == 'id_only':
                 # embeddings.shape = (batch_size, embedding_size)
                 embeddings = self.model(ts_data, gesture_type, total_time, usrn_pswd_len)
-                loss, batch_correct, batch_samples_num = self.loss_fn(embeddings, label)
+                loss, batch_correct, batch_samples_num, no_positive_anchor_num = self.loss_fn(embeddings, label)
             elif self.model_type == 'both':
                 embeddings = self.model(sensor_data, ts_data, total_time, usrn_pswd_len)
-                loss, batch_correct, batch_samples_num = self.loss_fn(embeddings, label)
+                loss, batch_correct, batch_samples_num, no_positive_anchor_num = self.loss_fn(embeddings, label)
             elif self.model_type == 'no_gesture':
                 embeddings = self.model(sensor_data, ts_data, total_time, usrn_pswd_len)
-                loss, batch_correct, batch_samples_num = self.loss_fn(embeddings, label)
+                loss, batch_correct, batch_samples_num, no_positive_anchor_num = self.loss_fn(embeddings, label)
             
             eval_loss += loss.item()
             correct_pairs += batch_correct
-            total_pairs += batch_samples_num
+            total_pairs += (batch_samples_num - no_positive_anchor_num)
         eval_stats['loss'] = eval_loss / (batch_idx+1)
-        eval_stats['accuracy'] = correct_pairs / total_pairs
+        eval_stats['correct_pairs'] = correct_pairs
+        eval_stats['total_pairs'] = total_pairs
         return eval_stats
     
     def save_checkpoint(self, save_path, epoch, save_all=False, use_time=True):
@@ -146,13 +161,17 @@ class TripletTrainEngine(object):
             ckpt_save_name = f'{save_path}/{self.model.__class__.__name__}.pth'
         torch.save(save_dict, ckpt_save_name)
         # Lastly saved checkpoint is the best checkpoint
-        self.best_ckpt_name = ckpt_save_name.split('/')[-1] 
+        self.best_ckpt_name = ckpt_save_name.split('/')[-1]
     
     def train_one_epoch(self, current_epoch, total_epoch):
         train_epoch_stats = dict()
+        epoch_total_samples = 0
+        epoch_correct_samples = 0
         epoch_loss = 0.0
         for batch_idx, batch in enumerate(self.train_loader):
             self.model.train()
+            self.optimizer.zero_grad()
+            
             sensor_data, ts_data, total_time, gesture_type, usrn_pswd_len, label = batch
             total_time, usrn_pswd_len, label = total_time.unsqueeze(1), usrn_pswd_len.unsqueeze(1), label.unsqueeze(1)
             sensor_data = sensor_data.to(self.device)
@@ -166,23 +185,26 @@ class TripletTrainEngine(object):
             if self.model_type == 'gesture_only':
                 # embeddings.shape = (batch_size, embedding_size)
                 embeddings = self.model(sensor_data, ts_data, total_time, usrn_pswd_len).float()
-                loss, batch_correct, batch_samples_num = self.loss_fn(embeddings, gesture_type)
+                loss, batch_correct, batch_samples_num, no_positive_anchor_num = self.loss_fn(embeddings, gesture_type)
             elif self.model_type == 'id_only':
                 # embeddings.shape = (batch_size, embedding_size)
                 embeddings = self.model(ts_data, gesture_type, total_time, usrn_pswd_len)
-                loss, batch_correct, batch_samples_num = self.loss_fn(embeddings, label)
+                loss, batch_correct, batch_samples_num, no_positive_anchor_num = self.loss_fn(embeddings, label)
             elif self.model_type == 'both':
                 embeddings = self.model(sensor_data, ts_data, total_time, usrn_pswd_len)
-                loss, batch_correct, batch_samples_num = self.loss_fn(embeddings, label)
+                loss, batch_correct, batch_samples_num, no_positive_anchor_num = self.loss_fn(embeddings, label)
             elif self.model_type == 'no_gesture':
                 embeddings = self.model(sensor_data, ts_data, total_time, usrn_pswd_len)
-                loss, batch_correct, batch_samples_num = self.loss_fn(embeddings, label)
+                loss, batch_correct, batch_samples_num, no_positive_anchor_num = self.loss_fn(embeddings, label)
+            
+            epoch_total_samples += (batch_samples_num - no_positive_anchor_num)
+            epoch_correct_samples += batch_correct
             
             epoch_loss += loss.item()
-            self.optimizer.zero_grad()
+            
             loss.backward()
             self.optimizer.step()
-            self.lr_scheduler.step()
+            
             
             # Log the training information
             if batch_idx % self.log_interval == 0:
@@ -192,33 +214,35 @@ class TripletTrainEngine(object):
             # Evaluate the model, save the model and log the evaluation information
             if batch_idx % self.eval_interval == 0:
                 eval_stats = self.eval()
-                print(f'[EVAL]EPOCH: {current_epoch}/{total_epoch}, batch: {batch_idx}, loss: {eval_stats["loss"]:.4f}, accuracy: {eval_stats["accuracy"]:.4f}')
-                self.logger.info(f'[EVAL]EPOCH: {current_epoch}/{total_epoch}, batch: {batch_idx}, loss: {eval_stats["loss"]:.4f}, accuracy: {eval_stats["accuracy"]:.4f}')
-                if eval_stats['accuracy'] > self.best_acc:
-                    self.best_acc = eval_stats['accuracy']
+                acc = eval_stats['correct_pairs'] / eval_stats['total_pairs']
+                print(f'[EVAL]EPOCH: {current_epoch}/{total_epoch}, batch: {batch_idx}, loss: {eval_stats["loss"]:.4f}, accuracy: {eval_stats["correct_pairs"]}/{eval_stats["total_pairs"]}, {acc:.4f}')
+                self.logger.info(f'[EVAL]EPOCH: {current_epoch}/{total_epoch}, batch: {batch_idx}, loss: {eval_stats["loss"]:.4f}, accuracy: {eval_stats["correct_pairs"]}/{eval_stats["total_pairs"]}, {acc:.4f}')
+                if acc > self.best_acc:
+                    self.best_acc = acc
                     self.save_checkpoint(save_path=train_cfg['Training']['checkpoint_path'], epoch=current_epoch)
                     print(f'[SAVE]EPOCH: {current_epoch}/{total_epoch}, batch: {batch_idx}, best_acc: {self.best_acc}, best_ckpt: {self.best_ckpt_name}')
                     self.logger.info(f'[SAVE]EPOCH: {current_epoch}/{total_epoch}, batch: {batch_idx}, best_acc: {self.best_acc}, best_ckpt: {self.best_ckpt_name}')
-
+        self.lr_scheduler.step()
         epoch_loss /= (batch_idx+1)
-        return epoch_loss
+        return epoch_loss, epoch_correct_samples, epoch_total_samples
     
     def train(self):
         self.model.train()
         for epoch in range(self.epoch_num):
             start_time = time.time()
-            epoch_loss = self.train_one_epoch(current_epoch=epoch, total_epoch=self.epoch_num)
+            epoch_loss, epoch_correct_samples, epoch_total_samples = self.train_one_epoch(current_epoch=epoch, total_epoch=self.epoch_num)
             epoch_time = time.time() - start_time
             epoch_time = time.strftime('%H:%M:%S', time.gmtime(epoch_time))
-            print(f'[TRAIN]EPOCH: {epoch}/{self.epoch_num}, Epoch Time: {epoch_time}, Epoch Loss: {epoch_loss:.4f}')
-            self.logger.info(f'[TRAIN]EPOCH: {epoch}/{self.epoch_num}, Epoch Time: {epoch_time}, Epoch Loss: {epoch_loss:.4f}')
+            print(f'[TRAIN]EPOCH: {epoch}/{self.epoch_num}, Epoch Time: {epoch_time}, Epoch Loss: {epoch_loss:.4f}, Epoch Accuracy: {epoch_correct_samples}/{epoch_total_samples}')
+            self.logger.info(f'[TRAIN]EPOCH: {epoch}/{self.epoch_num}, Epoch Time: {epoch_time}, Epoch Loss: {epoch_loss:.4f}, Epoch Accuracy: {epoch_correct_samples}/{epoch_total_samples}')
             
             # Eval model at the end of each epoch
             eval_stats = self.eval()
-            print(f'[EVAL]EPOCH: {epoch}/{self.epoch_num}, loss: {eval_stats["loss"]:.4f}, accuracy: {eval_stats["accuracy"]:.4f}')
-            self.logger.info(f'[EVAL]EPOCH: {epoch}/{self.epoch_num}, loss: {eval_stats["loss"]:.4f}, accuracy: {eval_stats["accuracy"]:.4f}')
-            if eval_stats['accuracy'] > self.best_acc:
-                self.best_acc = eval_stats['accuracy']
+            acc = eval_stats['correct_pairs'] / eval_stats['total_pairs']
+            print(f'[EVAL]EPOCH: {epoch}/{self.epoch_num}, loss: {eval_stats["loss"]:.4f}, accuracy: {eval_stats["correct_pairs"]}/{eval_stats["total_pairs"]}, {acc:.4f}')
+            self.logger.info(f'[EVAL]EPOCH: {epoch}/{self.epoch_num}, loss: {eval_stats["loss"]:.4f}, accuracy: {eval_stats["correct_pairs"]}/{eval_stats["total_pairs"]}, {acc:.4f}')
+            if acc > self.best_acc:
+                self.best_acc = acc
                 self.save_checkpoint(save_path=train_cfg['Training']['checkpoint_path'], epoch=epoch)
                 print(f'[SAVE]EPOCH: {epoch}/{self.epoch_num}, best_acc: {self.best_acc}, best_ckpt: {self.best_ckpt_name}')
                 self.logger.info(f'[SAVE]EPOCH: {epoch}/{self.epoch_num}, best_acc: {self.best_acc}, best_ckpt: {self.best_ckpt_name}')
@@ -226,6 +250,7 @@ class TripletTrainEngine(object):
         print(f'[DONE]Best_acc: {self.best_acc}, Best_ckpt: {self.best_ckpt_name}')
         self.logger.info(f'[DONE]Best_acc: {self.best_acc}, Best_ckpt: {self.best_ckpt_name}')
         return
+
     
     
         

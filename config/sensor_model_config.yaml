@@ -1,9 +1,9 @@
 ---
 RNN:
   in_feat_dim: 6
-  hidden_state_dim: 64
+  hidden_state_dim: 256
   out_feat_dim: 32
-  num_layers: 1
+  num_layers: 2
   sequence_length: 30
   batch_first: true
   bidirectional: false
@@ -16,9 +16,9 @@ RNN:
 
 GRU:
   in_feat_dim: 6
-  hidden_state_dim: 64
+  hidden_state_dim: 256
   out_feat_dim: 32
-  num_layers: 1
+  num_layers: 2
   sequence_length: 30
   batch_first: true
   bidirectional: false
@@ -31,7 +31,7 @@ GRU:
 
 FCNetwork:
   in_feat_dim: 6
-  input_size: 1
+  input_size: 2
   hidden_size: 64
   output_size: 32
   use_batch_norm: true
@@ -46,9 +46,9 @@ FCNetwork:
 
 LSTM:
   in_feat_dim: 6
-  hidden_state_dim: 64
+  hidden_state_dim: 256
   out_feat_dim: 32
-  num_layers: 1
+  num_layers: 2
   sequence_length: 30
   batch_first: true
   bidirectional: false

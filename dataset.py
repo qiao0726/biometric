@@ -3,6 +3,8 @@ import torch
 from utils import load_csv_to_list, encode_non_numeric
 import ast
 import os
+from pprint import pprint
+
 
 # When data length is < 30, we will pad the data with 0s
 # if > 30, we will truncate the data
@@ -21,7 +23,7 @@ def set_seq_len(input_seq:list, cut_start=True, pad_start=True):
     return input_seq
 
 
-FIXED_SENSOR_DATA_LENGTH = 75
+FIXED_SENSOR_DATA_LENGTH = 500
 def set_sensor_data_len(sensor_data:list, cut_start=True, pad_start=True):
     return_list = list()
     # if sensor_data's length is less than FIXED_SENSOR_DATA_LENGTH, pad it with 0s
@@ -44,7 +46,9 @@ def set_sensor_data_len(sensor_data:list, cut_start=True, pad_start=True):
 class TouchscreenDataset(Dataset):
     def __init__(self, csv_file_path,
                  applied_data_list=('hold_time', 'inter_time', 'distance', 'speed')):
-        self.data = load_csv_to_list(csv_file_path)
+        self.data, self.label_dict = load_csv_to_list(csv_file_path)
+        pprint(self.label_dict)
+        
         self.apply_data_list = applied_data_list
         
     def load_one_item(self, index):
@@ -95,11 +99,12 @@ class TouchscreenDataset(Dataset):
         gesture_type = gesture_type_map[action-1][pose-1]
         #gesture_type = torch.tensor(gesture_type, dtype=torch.float32)
         
-        label = encode_non_numeric(str(item['label']))
+        # label = encode_non_numeric(str(item['label']))
+        label = self.label_dict[item['label']]
         
         usrn_psrd_len = torch.tensor(item['usrn_len'] + item['pswd_len'], dtype=torch.float32)
         
-        return int(label), hold_time, inter_time, distance, speed, total_time, gesture_type, usrn_psrd_len
+        return label, hold_time, inter_time, distance, speed, total_time, gesture_type, usrn_psrd_len
     
     def get_len(self):
         return len(self.data)
@@ -113,7 +118,7 @@ class TouchscreenDataset(Dataset):
 
 class SensorDataset(Dataset):
     def __init__(self, csv_file_path, sensor_data_folder_path):
-        self.login_data = load_csv_to_list(csv_file_path)
+        self.login_data, _ = load_csv_to_list(csv_file_path)
         self.sensor_data_folder_path = sensor_data_folder_path
     
     def load_one_item(self, index):
@@ -122,7 +127,7 @@ class SensorDataset(Dataset):
         
         # Find the sensor data file of this uuid
         sensor_data_csv_file_path = os.path.join(self.sensor_data_folder_path, f'{uuid}.csv')
-        sensor_data = load_csv_to_list(sensor_data_csv_file_path)
+        sensor_data, _ = load_csv_to_list(sensor_data_csv_file_path)
         
         # sensor_data in each sample might have different length
         # So we need to pad or truncate them to the same length

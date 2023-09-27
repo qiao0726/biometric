@@ -1,21 +1,16 @@
-import os
-from PIL import Image
+from csv_utils import write_list_to_csv, modify_labels, get_all_unique_labels, del_rows
+from utils import load_csv_to_list
+from pprint import pprint
 
-# Set path to folder containing images
-folder_path = "/home/qn/datasets/czrkzp1_5w_subset"
-finished = 0
+csv_file_path = r'/home/qn/biometric/data/0921new_data/login.csv'
+data, _ = load_csv_to_list(csv_file_path)
 
-# Loop through all files in folder
-for filename in os.listdir(folder_path):
-    # Check if file is an image
-    if filename.endswith(".jpg") or filename.endswith(".png"):
-        # Open image
-        image_path = os.path.join(folder_path, filename)
-        image = Image.open(image_path)
-        # Duplicate image 10 times and save with new names
-        for i in range(1, 11):
-            new_filename = f"{i}_{filename}"
-            new_image_path = os.path.join(folder_path, new_filename)
-            image.save(new_image_path)
-            finished += 1
-            print(f"Finished {finished} images")
+pprint(get_all_unique_labels(data))
+
+keep_label_list = ['qiaonan', 'chenbin', 'chenwenhao', 'ganjiaqi', 
+                   'nanjing', 'ruanyouxiang', 'xiehao', 'xushihao', 
+                   'yangqingpeng', 'yangquanguo', 'yangxiaoyu']
+
+data = del_rows(data=data, keep_labels=keep_label_list)
+
+write_list_to_csv(data, r'/home/qn/biometric/data/0921new_data/login2.csv')

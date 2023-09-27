@@ -1,5 +1,4 @@
 import pandas as pd
-from sklearn.model_selection import train_test_split
 import csv
 import os
 import yaml
@@ -52,13 +51,19 @@ def load_csv_to_list(file_path):
         return None
     data = pd.read_csv(file_path).to_dict()
     result = list()
+    label_dict = dict()
     for row_num in range(len(data[next(iter(data))])):
         this_row = dict()
         for key in data.keys():
             this_row[key] = data[key][row_num]
+            
+            if key == 'label':
+                label = data[key][row_num]
+                if label not in label_dict.keys():
+                    label_dict[label] = len(label_dict)
         result.append(this_row)
-    
-    return result
+
+    return result, label_dict
     
 
 def load_csv_to_dict(file_path):
@@ -94,15 +99,5 @@ def load_test_config_yaml(cfg_path='/home/qn/biometric/config/test_config.yaml')
         else:
             raise Exception(f'No test_config.yaml found in {cfg_path}')
     return testing_config
-
-def split_csv_file(csv_file_path, subset1_path, subset2_path, subset1_ratio=0.8):
-    # Load the login.csv file into a pandas DataFrame
-    df = pd.read_csv(csv_file_path)
-    # Split the DataFrame into two separate DataFrames
-    df1, df2 = train_test_split(df, test_size=(1 - subset1_ratio))
-    # Save the two DataFrames to separate CSV files
-    df1.to_csv(subset1_path, index=False)
-    df2.to_csv(subset2_path, index=False)
-
 
     

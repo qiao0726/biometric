@@ -3,6 +3,7 @@ from .FCNetwork import FCNetwork
 from .GRU import GRU
 from .RNN import RNN
 from utils import load_model_config_yaml, load_test_config_yaml
+# from models.networks import GestureClassificationNetwork, IDRecognitionNetwork, BioMetricNetwork, NoGestureNetwork
 
 
 
@@ -29,37 +30,9 @@ def create_gesture_model(model_name):
     elif model_name == 'RNN':
         return
         
-    
-        
-def create_test_model(model_name:str):
-    test_config = load_test_config_yaml()
-    if model_name in test_config.keys():
-        cfg = test_config[model_name]
-    else:
-        raise Exception(f'No model named {model_name} in test_config.yaml')
-    
-    if model_name == 'FCNetwork':
-        return FCNetwork(input_size=len(cfg['applied_data_list'])*cfg['sequence_length']*cfg['in_feat_dim']
-                         + cfg['gesture_type_embedding_dim'] + 1, 
-                         hidden_size=cfg['hidden_size'], 
-                         output_size=cfg['output_size'], 
-                         use_batch_norm=cfg['use_batch_norm'],
-                         applied_data_list=cfg['applied_data_list'])
-    elif model_name == 'GRU':
-        return GRU(in_feat_dim=cfg['in_feat_dim'], hidden_state_dim=cfg['hidden_state_dim'],
-                         out_feat_dim=cfg['out_feat_dim'], num_layers=cfg['num_layers'],
-                         use_all_outputs=cfg['use_all_outputs'],
-                         applied_data_list=cfg['applied_data_list'], sequence_length=cfg['sequence_length'],
-                         bidirectional=cfg['bidirectional'], batch_first=cfg['batch_first'])
-        
-    elif model_name == 'RNN':
-        return RNN(input_size=cfg['input_size'], hidden_size=cfg['hidden_size'],
-                   output_size=cfg['output_size'], rnn_type=cfg['rnn_type'],
-                   num_layers=cfg['num_layers'], bidirectional=cfg['bidirectional'],
-                   batch_first=cfg['batch_first'], dropout=cfg['dropout'])
         
 
-def get_sensor_data_model(model_name:str):
+def get_sensor_data_model(model_name:str, bidirectional=False):
     """Use the model_name to create a model instance.
     Sensor data model embeds the sensor data to a vector.
     Args:
@@ -77,44 +50,44 @@ def get_sensor_data_model(model_name:str):
     
     if model_name == 'LSTM':
         if cfg['use_all_outputs']:
-            num_directions = 2 if cfg['bidirectional'] else 1
+            num_directions = 2 if bidirectional else 1
             out_dim = cfg['hidden_state_dim'] * num_directions * cfg['sequence_length']
         else:
-            num_directions = 2 if cfg['bidirectional'] else 1
+            num_directions = 2 if bidirectional else 1
             out_dim = cfg['hidden_state_dim'] * num_directions
         
         return LSTM(in_feat_dim=cfg['in_feat_dim'], hidden_state_dim=cfg['hidden_state_dim'],
                    num_layers=cfg['num_layers'], use_all_outputs=cfg['use_all_outputs'],
                    applied_data_list=cfg['applied_data_list'],
-                   bidirectional=cfg['bidirectional'], data_type='sensor'), out_dim
+                   bidirectional=bidirectional, data_type='sensor'), out_dim
     elif model_name == 'GRU':
         if cfg['use_all_outputs']:
-            num_directions = 2 if cfg['bidirectional'] else 1
+            num_directions = 2 if bidirectional else 1
             out_dim = cfg['hidden_state_dim'] * num_directions * cfg['sequence_length']
         else:
-            num_directions = 2 if cfg['bidirectional'] else 1
+            num_directions = 2 if bidirectional else 1
             out_dim = cfg['hidden_state_dim'] * num_directions
         
         return GRU(in_feat_dim=cfg['in_feat_dim'], hidden_state_dim=cfg['hidden_state_dim'],
                          num_layers=cfg['num_layers'], use_all_outputs=cfg['use_all_outputs'],
                          applied_data_list=cfg['applied_data_list'],
-                         bidirectional=cfg['bidirectional'], data_type='sensor'), out_dim
+                         bidirectional=bidirectional, data_type='sensor'), out_dim
     elif model_name == 'RNN':
         if cfg['use_all_outputs']:
-            num_directions = 2 if cfg['bidirectional'] else 1
+            num_directions = 2 if bidirectional else 1
             out_dim = cfg['hidden_state_dim'] * num_directions * cfg['sequence_length']
         else:
-            num_directions = 2 if cfg['bidirectional'] else 1
+            num_directions = 2 if bidirectional else 1
             out_dim = cfg['hidden_state_dim'] * num_directions
         
         return RNN(in_feat_dim=cfg['in_feat_dim'], hidden_state_dim=cfg['hidden_state_dim'],
                    num_layers=cfg['num_layers'], use_all_outputs=cfg['use_all_outputs'],
                    applied_data_list=cfg['applied_data_list'],
-                   bidirectional=cfg['bidirectional'], data_type='sensor'), out_dim
+                   bidirectional=bidirectional, data_type='sensor'), out_dim
 
 
 
-def get_touchscreen_data_model(model_name:str):
+def get_touchscreen_data_model(model_name:str, bidirectional=False):
     """Use the model_name to create a model instance.
     Touchscreen data model embeds the touchscreen data to a vector.
     Args:
@@ -132,42 +105,42 @@ def get_touchscreen_data_model(model_name:str):
     
     if model_name == 'LSTM':
         if cfg['use_all_outputs']:
-            num_directions = 2 if cfg['bidirectional'] else 1
+            num_directions = 2 if bidirectional else 1
             out_dim = cfg['hidden_state_dim'] * num_directions * cfg['sequence_length']
         else:
-            num_directions = 2 if cfg['bidirectional'] else 1
+            num_directions = 2 if bidirectional else 1
             out_dim = cfg['hidden_state_dim'] * num_directions
         
         return LSTM(in_feat_dim=cfg['in_feat_dim'], hidden_state_dim=cfg['hidden_state_dim'],
                    num_layers=cfg['num_layers'], use_all_outputs=cfg['use_all_outputs'],
                    applied_data_list=cfg['applied_data_list'],
-                   bidirectional=cfg['bidirectional'], data_type='touchscreen'), out_dim
+                   bidirectional=bidirectional, data_type='touchscreen'), out_dim
     
     elif model_name == 'GRU':
         if cfg['use_all_outputs']:
-            num_directions = 2 if cfg['bidirectional'] else 1
+            num_directions = 2 if bidirectional else 1
             out_dim = cfg['hidden_state_dim'] * num_directions * cfg['sequence_length']
         else:
-            num_directions = 2 if cfg['bidirectional'] else 1
+            num_directions = 2 if bidirectional else 1
             out_dim = cfg['hidden_state_dim'] * num_directions
         
         return GRU(in_feat_dim=cfg['in_feat_dim'], hidden_state_dim=cfg['hidden_state_dim'],
                          num_layers=cfg['num_layers'], use_all_outputs=cfg['use_all_outputs'],
                          applied_data_list=cfg['applied_data_list'],
-                         bidirectional=cfg['bidirectional'], data_type='touchscreen'), out_dim
+                         bidirectional=bidirectional, data_type='touchscreen'), out_dim
     
     elif model_name == 'RNN':
         if cfg['use_all_outputs']:
-            num_directions = 2 if cfg['bidirectional'] else 1
+            num_directions = 2 if bidirectional else 1
             out_dim = cfg['hidden_state_dim'] * num_directions * cfg['sequence_length']
         else:
-            num_directions = 2 if cfg['bidirectional'] else 1
+            num_directions = 2 if bidirectional else 1
             out_dim = cfg['hidden_state_dim'] * num_directions
         
         return RNN(in_feat_dim=cfg['in_feat_dim'], hidden_state_dim=cfg['hidden_state_dim'],
                    num_layers=cfg['num_layers'], use_all_outputs=cfg['use_all_outputs'],
                    applied_data_list=cfg['applied_data_list'],
-                   bidirectional=cfg['bidirectional'], data_type='touchscreen'), out_dim
+                   bidirectional=bidirectional, data_type='touchscreen'), out_dim
 
 
     
